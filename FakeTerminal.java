@@ -32,27 +32,6 @@ class ExecHelpers {
     }
     return result;
   }
-  public static String streamReadLine(InputStream out) throws IOException {
-    String result = "";
-    int readCount = 0;
-    System.out.println("Reading stream");
-    while(true) {
-      int c = out.read();
-      System.out.print((char)c);
-      if(c == -1) { break; }
-      if((char)c == '\n'){ break;}
-      result += (char)c;
-      readCount += 1;
-      if(readCount > 10 ){
-        break;
-      }
-    }
-    return result;
-  }
-  public static void steramWriteString(OutputStream in) throws IOException {
-
-  }
-
   /**
     Takes a command, represented as an array of strings as it would by typed at
     the command line, runs it, and returns its combined stdout and stderr as a
@@ -131,10 +110,6 @@ class FakeTerminal{
                 System.out.println(line);
             }
         }
-
-
-
-        // scanner.hasNextLine();
 
         writer.flush();
         scanner.close();
