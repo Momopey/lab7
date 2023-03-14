@@ -1,6 +1,10 @@
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 // import java.io.InputStreamReader;
@@ -8,6 +12,7 @@ import java.net.UnknownHostException;
 // import java.net.URISyntaxException;
 import java.util.Arrays;
 // import java.util.stream.Stream;
+import java.util.Scanner;
 
 class ExecHelpers {
 
@@ -18,7 +23,7 @@ class ExecHelpers {
     In Java 9 and later, new String(out.readAllBytes()) would be a better
     option, but using Java 8 for compatibility with ieng6.
   */
-  static String streamToString(InputStream out) throws IOException {
+  public static String streamToString(InputStream out) throws IOException {
     String result = "";
     while(true) {
       int c = out.read();
@@ -26,6 +31,26 @@ class ExecHelpers {
       result += (char)c;
     }
     return result;
+  }
+  public static String streamReadLine(InputStream out) throws IOException {
+    String result = "";
+    int readCount = 0;
+    System.out.println("Reading stream");
+    while(true) {
+      int c = out.read();
+      System.out.print((char)c);
+      if(c == -1) { break; }
+      if((char)c == '\n'){ break;}
+      result += (char)c;
+      readCount += 1;
+      if(readCount > 10 ){
+        break;
+      }
+    }
+    return result;
+  }
+  public static void steramWriteString(OutputStream in) throws IOException {
+
   }
 
   /**
@@ -54,7 +79,7 @@ class FakeTerminal{
         String workingDir = workingDirPath[workingDirPath.length - 1];
         return username + "@"+ systemName + " " + workingDir + " % ";
     }
-    public static void main(String[] args) throws IOException{
+    public static void main(String[] args) throws IOException, InterruptedException{
         String header = makeTerminalHeader();
         String filename = args[0];
         String[] commands = ExecHelpers.exec(new String[]{"cat",filename}).split(System.lineSeparator());
@@ -71,11 +96,49 @@ class FakeTerminal{
 //         at java.lang.ProcessImpl.start(ProcessImpl.java:134)
 //         at java.lang.ProcessBuilder.
 
+        // for(String command : commands){
+        //     System.out.println(header + command);
+        //     // String result = ExecHelpers.exec(new String[]{"exec",command});
+        //     String result = ExecHelpers.exec(new String[]{"bash","execscript.bash",command});
+        //     System.out.print(result); 
+        // }
+
+        Process p = new ProcessBuilder()
+                        .command(Arrays.asList(new String[]{"bash","-s"}))
+                        .redirectErrorStream(true)
+                        .start();
+
+        //https://stackoverflow.com/questions/18903549/writing-to-inputstream-of-a-java-process
+        OutputStream stdin = p.getOutputStream();
+        InputStream stdout = p.getInputStream();
+
+        // BufferedReader reader = new BufferedReader(new InputStreamReader(stdout));
+        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(stdin)); 
+        Scanner scanner = new Scanner(stdout);
+
+        String DONE_STRING = "lkdfjnghreiugyerpifuahlriungulraeg";
+
         for(String command : commands){
-            System.out.println(header + command);
-            // String result = ExecHelpers.exec(new String[]{"exec",command});
-            String result = ExecHelpers.exec(new String[]{"bash","execscript.bash",command});
-            System.out.print(result); 
+            if(command.charAt(0) == '#') continue;
+            System.out.println(header+command);
+            writer.write(command + "\n");
+            writer.write("echo "+DONE_STRING+"\n");
+            writer.flush();
+            
+            while(scanner.hasNextLine()) {
+                String line = scanner.nextLine();
+                if(line.equals(DONE_STRING)){break;}
+                System.out.println(line);
+            }
         }
+
+
+
+        // scanner.hasNextLine();
+
+        writer.flush();
+        scanner.close();
+        p.destroy();
+
     }
 }
